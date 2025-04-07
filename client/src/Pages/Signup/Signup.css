@@ -1,0 +1,124 @@
+/* Signup.css */
+
+/* Gradient background for the page */
+.signup-bg {
+  background: url("https://images.unsplash.com/photo-1633675254245-efd890d087b8?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D")
+    no-repeat center center fixed;
+  background-size: cover;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  backdrop-filter: blur(30px);
+}
+
+/* Form container styling */
+.signup-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Form styling */
+.signup-form {
+  width: 100%;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
+  background-color: #ffffff;
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease-in-out;
+}
+
+.signup-form:hover {
+  transform: translateY(-10px); /* Slight hover animation */
+}
+
+/* Title styling */
+.signup-title {
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* Input styling */
+.signup-input {
+  margin-bottom: 20px;
+  border-radius: 10px;
+  padding: 10px;
+  width: 100%;
+  border: 1px solid #69dd7c; /* Green border for inputs */
+}
+
+/* Vertically center placeholder text */
+.MuiInputBase-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Button styling */
+.signup-button {
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px;
+  background: linear-gradient(90deg, #69dd7c, #44c767); /* Green gradient */
+  color: white;
+  transition: background 0.3s ease;
+}
+
+.signup-button:hover {
+  background: linear-gradient(90deg, #58c17e, #36a055);
+}
+
+/* Login link styling */
+.login-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: #69dd7c !important; /* Matching green color */
+  text-decoration: none;
+  margin-top: 10px;
+}
+
+.login-link:hover {
+  color: #44c767; /* Slightly darker green */
+  text-decoration: underline;
+}
+
+.login-prompt {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  margin-top: 20px;
+}
+.login-prompt p {
+  margin: 0;
+  color: #5c5c5c; /* Darker text for better readability */
+}
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .signup-bg {
+    padding: 10px;
+  }
+
+  .signup-form {
+    padding: 20px;
+  }
+
+  .signup-title {
+    font-size: 24px;
+  }
+
+  .signup-input {
+    font-size: 14px;
+  }
+}
