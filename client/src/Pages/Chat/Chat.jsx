@@ -36,6 +36,7 @@ export default function Chat() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Fetch users and listen for updates
   useEffect(() => {
     fetch("http://localhost:3000/auth/users")
       .then((res) => res.json())
@@ -50,26 +51,32 @@ export default function Chat() {
       setMembers(users);
     });
 
-    socket.on("message", (msg) => {
+    socket.on("private-message", (msg) => {
       console.log("Received new message:", msg);
-      setMessages((prev) => [...prev, msg]);
+      if (
+        (msg.senderId === user.id && msg.receiverId === selectedMember?.id) ||
+        (msg.senderId === selectedMember?.id && msg.receiverId === user.id)
+      ) {
+        setMessages((prev) => [...prev, msg]);
+      }
     });
 
     return () => {
       socket.off("update-users");
-      socket.off("message");
+      socket.off("private-message");
     };
-  }, []);
+  }, [selectedMember, user.id]);
 
   const sendMessage = () => {
     if (message.trim() && selectedMember) {
-      const formatted = `You to ${selectedMember.username}: ${message}`;
+      const formatted = {
+        sender: user.id,
+        receiver: selectedMember.id,
+        text: message,
+      };
       console.log("Sending message:", formatted);
       setMessages((prev) => [...prev, formatted]);
-      socket.emit(
-        "message",
-        `${user.username} to ${selectedMember.username}: ${message}`
-      );
+      // socket.emit("private-message", formatted);
       setMessage("");
     } else {
       console.log("Message or selected member is empty");
@@ -102,7 +109,8 @@ export default function Chat() {
       <Box className="chat-main">
         <Box className="chat-sidebar">
           <TextField
-            label="Search by email"
+            sx={{ marginTop: "20px", width: "90%" }}
+            label="Search"
             variant="outlined"
             size="small"
             fullWidth
@@ -118,13 +126,21 @@ export default function Chat() {
             }}
           />
 
-          <List>
+          <List className="chat-member-list">
             {filteredMembers.map((member) => (
               <ListItem
+                className="chat-member-item"
                 button
                 key={member.id}
                 selected={selectedMember?.id === member.id}
                 onClick={() => setSelectedMember(member)}
+                sx={{
+                  borderRadius: 2,
+                  backgroundColor:
+                    selectedMember?.id === member.id
+                      ? "#cce5cc"
+                      : "transparent",
+                }}
               >
                 <ListItemText
                   primary={member.username}
@@ -142,7 +158,7 @@ export default function Chat() {
           <Box className="chat-messages">
             {messages.map((msg, index) => (
               <Box key={index} className="chat-message">
-                {msg}
+                {msg.text}
               </Box>
             ))}
           </Box>

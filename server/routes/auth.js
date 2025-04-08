@@ -57,6 +57,8 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/users", async (req, res) => {
+  const io = getSocket();
+
   try {
     const users = await User.findAll({
       attributes: ["id", "username", "email"],

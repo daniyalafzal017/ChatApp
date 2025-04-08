@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
+const conversationRoutes = require("./routes/conversation");
 const Message = require("./models/Message");
 const User = require("./models/Users");
 const sequelize = require("./config/database");
@@ -13,6 +14,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/auth", authRoutes);
+app.use("/messages", conversationRoutes);
 
 const PORT = process.env.PORT || 3000;
 
@@ -22,8 +24,6 @@ const io = initializeSocket(server);
 console.log("Socket.io initialized");
 
 io.on("connection", (socket) => {
-  console.log("User connected", socket.id);
-
   socket.on("new-user", async (data) => {
     console.log("New user event received", data);
 
@@ -38,9 +38,23 @@ io.on("connection", (socket) => {
 
   socket.on("private-message", async ({ sender, receiver, text }) => {
     console.log("Private message received:", sender, receiver, text);
-    const newMsg = await Message.create({ sender, receiver, text });
+
+    // Add the current time when saving the message
+    const currentTime = new Date(); // Get current timestamp
+    const newMsg = await Message.create({
+      senderId: sender,
+      receiverId: receiver,
+      text: text,
+      time: currentTime, // Set the 'time' field with the current timestamp
+    });
+
     console.log("New message saved:", newMsg);
-    io.emit("private-message", newMsg);
+
+    // Emit the message with time to the client
+    io.emit("private-message", {
+      ...newMsg.toJSON(), // Spread the message object
+      time: currentTime.toISOString(), // Convert the time to ISO format
+    });
   });
 
   socket.on("disconnect", () => {
