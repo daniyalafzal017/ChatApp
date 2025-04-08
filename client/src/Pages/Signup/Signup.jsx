@@ -10,6 +10,11 @@ import {
   Link,
 } from "@mui/material";
 import "./Signup.css"; // Import the custom CSS file
+import io from "socket.io-client";
+
+const socket = io("http://localhost:3000", {
+  transports: ["websocket"],
+});
 
 export default function Signup() {
   const [username, setUsername] = useState("");
@@ -25,6 +30,11 @@ export default function Signup() {
         email,
         password,
       });
+      socket.emit("new-user", { username, email });
+      console.log("User signed up successfully");
+      setUsername("");
+      setEmail("");
+      setPassword("");
       navigate("/login");
     } catch (err) {
       console.error("Signup failed", err);

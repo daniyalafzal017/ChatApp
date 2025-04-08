@@ -27,6 +27,7 @@ export default function Login() {
         password,
       });
       dispatch(loginSuccess(res.data));
+      console.log("Login successful", res.data);
       navigate("/chat");
     } catch (err) {
       console.error("Login failed", err.response?.data?.message || err.message);
