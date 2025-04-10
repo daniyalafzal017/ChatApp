@@ -83,3 +83,12 @@
   background-color: var(--primary-color);
   color: white;
 }
+.chat-message.sent {
+  background-color: #d1f7c4;
+  align-self: flex-end;
+}
+
+.chat-message.received {
+  background-color: #e1e1e1;
+  align-self: flex-start;
+}

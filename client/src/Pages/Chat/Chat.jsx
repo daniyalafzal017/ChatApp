@@ -14,6 +14,7 @@ import {
   ListItem,
   ListItemText,
   InputAdornment,
+  CircularProgress,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import "./Chat.css";
@@ -31,28 +32,25 @@ export default function Chat() {
   const [search, setSearch] = useState("");
   const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [loadingMessages, setLoadingMessages] = useState(false);
 
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Fetch users and listen for updates
   useEffect(() => {
     fetch("http://localhost:3000/auth/users")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Fetched users:", data);
         setMembers(data);
       })
       .catch((err) => console.error("Error fetching users:", err));
 
     socket.on("update-users", (users) => {
-      console.log("Received updated users:", users);
       setMembers(users);
     });
 
     socket.on("private-message", (msg) => {
-      console.log("Received new message:", msg);
       if (
         (msg.senderId === user.id && msg.receiverId === selectedMember?.id) ||
         (msg.senderId === selectedMember?.id && msg.receiverId === user.id)
@@ -67,24 +65,47 @@ export default function Chat() {
     };
   }, [selectedMember, user.id]);
 
+  const handleSelectMember = async (member) => {
+    setSelectedMember(member);
+    setMessages([]);
+    setLoadingMessages(true);
+
+    try {
+      const res = await fetch(
+        `http://localhost:3000/messages/history/${user.id}/${member.id}`
+      );
+      const data = await res.json();
+
+      if (Array.isArray(data)) {
+        setMessages(data);
+      } else {
+        setMessages([]);
+        console.warn("Unexpected data format:", data);
+      }
+    } catch (err) {
+      console.error("Error fetching message history:", err);
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
   const sendMessage = () => {
     if (message.trim() && selectedMember) {
       const formatted = {
-        sender: user.id,
-        receiver: selectedMember.id,
+        senderId: user.id,
+        receiverId: selectedMember.id,
         text: message,
+        time: new Date().toISOString(),
       };
       console.log("Sending message:", formatted);
       setMessages((prev) => [...prev, formatted]);
-      // socket.emit("private-message", formatted);
+      socket.emit("private-message", formatted);
       setMessage("");
-    } else {
-      console.log("Message or selected member is empty");
     }
   };
 
   const handleLogout = () => {
-    console.log("Logging out...");
     dispatch(logout());
     navigate("/login");
   };
@@ -107,6 +128,7 @@ export default function Chat() {
       </AppBar>
 
       <Box className="chat-main">
+        {/* Sidebar */}
         <Box className="chat-sidebar">
           <TextField
             sx={{ marginTop: "20px", width: "90%" }}
@@ -114,7 +136,6 @@ export default function Chat() {
             variant="outlined"
             size="small"
             fullWidth
-            className="chat-search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             InputProps={{
@@ -133,7 +154,7 @@ export default function Chat() {
                 button
                 key={member.id}
                 selected={selectedMember?.id === member.id}
-                onClick={() => setSelectedMember(member)}
+                onClick={() => handleSelectMember(member)}
                 sx={{
                   borderRadius: 2,
                   backgroundColor:
@@ -151,16 +172,36 @@ export default function Chat() {
           </List>
         </Box>
 
+        {/* Chat Box */}
         <Box className="chat-content">
           <Typography variant="h5" gutterBottom>
             Chat with {selectedMember?.username || "..."}
           </Typography>
+
           <Box className="chat-messages">
-            {messages.map((msg, index) => (
-              <Box key={index} className="chat-message">
-                {msg.text}
+            {loadingMessages ? (
+              <Box sx={{ textAlign: "center", mt: 3 }}>
+                <CircularProgress />
               </Box>
-            ))}
+            ) : messages.length === 0 ? (
+              <Typography
+                variant="body2"
+                sx={{ textAlign: "center", marginTop: 2 }}
+              >
+                No messages yet.
+              </Typography>
+            ) : (
+              messages.map((msg, index) => (
+                <Box
+                  key={index}
+                  className={`chat-message ${
+                    msg.senderId === user.id ? "sent" : "received"
+                  }`}
+                >
+                  {msg.text}
+                </Box>
+              ))
+            )}
           </Box>
 
           <Box className="chat-input-box">
