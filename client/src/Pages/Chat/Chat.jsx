@@ -18,6 +18,10 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import "./Chat.css";
+import SendIcon from "@mui/icons-material/Send";
+import VideoCallIcon from "@mui/icons-material/VideoCall";
+import IconButton from "@mui/material/IconButton";
+import PlacehoderImage from "../../assets/green.png";
 
 const socket = io("http://localhost:3000", {
   transports: ["websocket"],
@@ -33,7 +37,8 @@ export default function Chat() {
   const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
-
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showUserList, setShowUserList] = useState(true);
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -71,6 +76,19 @@ export default function Chat() {
     };
   }, [selectedMember, user?.id]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setShowUserList(false); // Desktop always shows both
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const handleSelectMember = async (member) => {
     setSelectedMember(member);
     setMessages([]);
@@ -105,7 +123,6 @@ export default function Chat() {
         time: new Date().toISOString(),
       };
       console.log("Sending message:", formatted);
-      setMessages((prev) => [...prev, formatted]);
       socket.emit("private-message", formatted);
       setMessage("");
     }
@@ -114,6 +131,11 @@ export default function Chat() {
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
+  };
+
+  const handleMemberSelect = (member) => {
+    setSelectedMember(member);
+    if (isMobile) setShowUserList(false); // show chat screen on mobile
   };
 
   const filteredMembers = members.filter((m) =>
@@ -137,7 +159,7 @@ export default function Chat() {
         {/* Sidebar */}
         <Box className="chat-sidebar">
           <TextField
-            sx={{ marginTop: "20px", width: "90%" }}
+            className="chat-search-bar"
             label="Search"
             variant="outlined"
             size="small"
@@ -179,56 +201,93 @@ export default function Chat() {
         </Box>
 
         {/* Chat Box */}
+        {/* Chat Box */}
         <Box className="chat-content">
-          <Typography variant="h5" gutterBottom>
-            Chat with {selectedMember?.username || "..."}
-          </Typography>
-
-          <Box className="chat-messages">
-            {loadingMessages ? (
-              <Box sx={{ textAlign: "center", mt: 3 }}>
-                <CircularProgress />
-              </Box>
-            ) : messages.length === 0 ? (
-              <Typography
-                variant="body2"
-                sx={{ textAlign: "center", marginTop: 2 }}
-              >
-                No messages yet.
+          {!selectedMember ? (
+            <Box className="chat-placeholder">
+              <img
+                src={PlacehoderImage}
+                alt="Select a user"
+                style={{ width: 150, marginBottom: 20 }}
+              />
+              <Typography variant="h5" color="textSecondary">
+                Select a user to start chatting
               </Typography>
-            ) : (
-              messages.map((msg, index) => (
-                <Box
-                  key={index}
-                  className={`chat-message ${
-                    msg.senderId === user.id ? "sent" : "received"
-                  }`}
+              <Typography variant="body2" color="textSecondary">
+                Start a conversation by clicking on a member from the left
+                sidebar.
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <Box className="chat-header">
+                <Typography variant="h6" className="chat-header-title">
+                  {selectedMember.username}
+                </Typography>
+                <IconButton
+                  color="primary"
+                  aria-label="start video call"
+                  className="chat-meeting-btn"
                 >
-                  {msg.text}
-                </Box>
-              ))
-            )}
-          </Box>
+                  <VideoCallIcon />
+                </IconButton>
+              </Box>
 
-          <Box className="chat-input-box">
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Type a message..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              className="chat-input"
-            />
-            <Button
-              variant="contained"
-              onClick={sendMessage}
-              disabled={!selectedMember || !message.trim()}
-              className="chat-send-button"
-            >
-              Send
-            </Button>
-          </Box>
+              <Box className="chat-messages">
+                {loadingMessages ? (
+                  <Box sx={{ textAlign: "center", mt: 3 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : messages.length === 0 ? (
+                  <Typography
+                    variant="body2"
+                    sx={{ textAlign: "center", marginTop: 2 }}
+                  >
+                    No messages yet.
+                  </Typography>
+                ) : (
+                  messages.map((msg, index) => (
+                    <Box
+                      key={index}
+                      className={`chat-message ${
+                        msg.senderId === user.id ? "sent" : "received"
+                      }`}
+                    >
+                      {msg.text}
+                      {msg.time && (
+                        <Typography variant="caption" className="message-time">
+                          {new Date(msg.time).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))
+                )}
+              </Box>
+
+              <Box className="chat-input-box">
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  placeholder="Type a message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                  className="chat-input"
+                />
+                <IconButton
+                  color="primary"
+                  onClick={sendMessage}
+                  disabled={!selectedMember || !message.trim()}
+                  className="chat-send-button"
+                >
+                  <SendIcon />
+                </IconButton>
+              </Box>
+            </>
+          )}
         </Box>
       </Box>
     </Box>
