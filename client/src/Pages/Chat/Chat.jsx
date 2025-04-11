@@ -45,22 +45,18 @@ export default function Chat() {
 
   useEffect(() => {
     if (user?.id) {
-      socket.emit("join", user.id); // Join private room
+      socket.emit("join", user.id);
       console.log(`Joining socket room for user: ${user.id}`);
     }
 
     fetch("http://localhost:3000/auth/users")
       .then((res) => res.json())
-      .then((data) => {
-        setMembers(data);
-      })
+      .then((data) => setMembers(data))
       .catch((err) => console.error("Error fetching users:", err));
 
-    socket.on("update-users", (users) => {
-      setMembers(users);
-    });
+    socket.on("update-users", (users) => setMembers(users));
 
-    socket.on("private-message", (msg) => {
+    const handlePrivateMessage = (msg) => {
       if (
         (msg.senderId === user.id && msg.receiverId === selectedMember?.id) ||
         (msg.senderId === selectedMember?.id && msg.receiverId === user.id)
@@ -68,13 +64,15 @@ export default function Chat() {
         console.log("Received message:", msg);
         setMessages((prev) => [...prev, msg]);
       }
-    });
+    };
+
+    socket.on("private-message", handlePrivateMessage);
 
     return () => {
       socket.off("update-users");
-      socket.off("private-message");
+      socket.off("private-message", handlePrivateMessage);
     };
-  }, [selectedMember, user?.id]);
+  }, [user?.id, selectedMember?.id]);
 
   useEffect(() => {
     const handleResize = () => {
