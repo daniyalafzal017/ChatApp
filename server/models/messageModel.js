@@ -28,8 +28,19 @@ const getMessages = async (sender, receiver) => {
   try {
     const messages = await prisma.message.findMany({
       where: {
-        sender,
-        receiver,
+        OR: [
+          {
+            senderId: sender,
+            receiverId: receiver,
+          },
+          {
+            senderId: receiver,
+            receiverId: sender,
+          },
+        ],
+      },
+      orderBy: {
+        time: "asc",
       },
     });
     return messages;

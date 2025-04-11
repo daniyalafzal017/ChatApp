@@ -6,17 +6,21 @@ let io;
 function initializeSocket(server) {
   io = new Server(server, {
     cors: {
-      origin: "http://localhost:5173", // Adjust this to match your frontend's URL
+      origin: "http://localhost:5173", // Adjust to your frontend URL
       methods: ["GET", "POST"],
     },
   });
 
   io.on("connection", (socket) => {
-    console.log("User connected: " + socket.id);
+    console.log("User connected:", socket.id);
 
-    socket.on("new-user", async (data) => {
-      console.log("New user event received", data);
+    // Join the user to a room using their user ID
+    socket.on("join", (userId) => {
+      socket.join(userId);
+      console.log(`User ${userId} joined their private room`);
+    });
 
+    socket.on("new-user", async () => {
       try {
         const users = await prisma.user.findMany({
           select: {
@@ -27,60 +31,48 @@ function initializeSocket(server) {
         });
 
         io.emit("update-users", users);
-        console.log("Emitted update-users event to all clients");
+        console.log("Broadcasted updated user list.");
       } catch (err) {
         console.error("Error fetching users:", err);
       }
     });
 
     socket.on("private-message", async ({ senderId, receiverId, text }) => {
-      console.log("Private message received:", senderId, receiverId, text);
+      console.log(
+        "Private message received:",
+        senderId,
+        "->",
+        receiverId,
+        text
+      );
       const currentTime = new Date();
 
       try {
         const newMessage = await prisma.message.create({
           data: {
-            senderId: senderId, // Correct field name
-            receiverId: receiverId, // Correct field name
-            text: text,
+            senderId,
+            receiverId,
+            text,
             time: currentTime,
           },
-          include: {
-            sender: {
-              select: {
-                id: true,
-                username: true,
-              },
-            },
-            receiver: {
-              select: {
-                id: true,
-                username: true,
-              },
-            },
-          },
         });
 
-        console.log("Message saved:", newMessage);
-
-        // Emit message to receiver
-        io.to(receiver).emit("private-message", {
+        const messagePayload = {
           ...newMessage,
           time: currentTime.toISOString(),
-        });
+        };
 
-        // Emit message to sender
-        io.to(sender).emit("private-message", {
-          ...newMessage,
-          time: currentTime.toISOString(),
-        });
+        // Emit to sender and receiver using their user ID rooms
+        io.to(senderId).emit("private-message", messagePayload);
+        io.to(receiverId).emit("private-message", messagePayload);
+        console.log("Emitted private message to both sender and receiver");
       } catch (err) {
         console.error("Error saving message:", err);
       }
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected", socket.id);
+      console.log("User disconnected:", socket.id);
     });
   });
 
@@ -89,7 +81,7 @@ function initializeSocket(server) {
 
 function getSocket() {
   if (!io) {
-    throw new Error("Socket.io is not initialized");
+    throw new Error("Socket.io not initialized");
   }
   return io;
 }

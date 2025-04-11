@@ -39,6 +39,11 @@ export default function Chat() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (user?.id) {
+      socket.emit("join", user.id); // Join private room
+      console.log(`Joining socket room for user: ${user.id}`);
+    }
+
     fetch("http://localhost:3000/auth/users")
       .then((res) => res.json())
       .then((data) => {
@@ -55,6 +60,7 @@ export default function Chat() {
         (msg.senderId === user.id && msg.receiverId === selectedMember?.id) ||
         (msg.senderId === selectedMember?.id && msg.receiverId === user.id)
       ) {
+        console.log("Received message:", msg);
         setMessages((prev) => [...prev, msg]);
       }
     });
@@ -63,7 +69,7 @@ export default function Chat() {
       socket.off("update-users");
       socket.off("private-message");
     };
-  }, [selectedMember, user.id]);
+  }, [selectedMember, user?.id]);
 
   const handleSelectMember = async (member) => {
     setSelectedMember(member);
@@ -75,7 +81,7 @@ export default function Chat() {
         `http://localhost:3000/messages/history/${user.id}/${member.id}`
       );
       const data = await res.json();
-
+      console.log("Fetched message history:", data);
       if (Array.isArray(data)) {
         setMessages(data);
       } else {
